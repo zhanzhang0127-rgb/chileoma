@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Heart, MapPin, MessageCircle, Users, Utensils, Zap } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Heart, MapPin, MessageCircle, Users, Utensils, Zap, User, MessageSquare, TrendingUp } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -9,12 +10,7 @@ export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
 
-  // Redirect to feed if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && !loading) {
-      navigate("/feed");
-    }
-  }, [isAuthenticated, loading, navigate]);
+  // Don't auto-redirect - show the home page with navigation tabs
 
   if (loading) {
     return (
@@ -24,6 +20,160 @@ export default function Home() {
     );
   }
 
+  // If authenticated, show the main app layout with navigation tabs
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
+          <div className="container flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <img 
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663506480782/XzEWDxgSS5RTJYj5etncA4/chileoma-logo-J5D7zC5YTWiDqDhd7fMXt5.webp" 
+                alt="吃了吗 Logo" 
+                className="h-10 w-10"
+              />
+              <span className="text-xl font-bold text-primary">吃了吗</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-foreground/70 hidden sm:inline">{user?.name}</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  logout();
+                }}
+              >
+                退出
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="container py-12">
+          <div className="max-w-6xl mx-auto">
+            {/* Navigation Grid */}
+            <div className="grid md:grid-cols-2 gap-6 mb-12">
+              {/* Personal Center */}
+              <Card 
+                className="p-8 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                onClick={() => navigate("/profile")}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <User className="w-7 h-7 text-primary" />
+                  </div>
+                  <span className="text-3xl">👤</span>
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-3">个人中心</h3>
+                <p className="text-foreground/70 mb-6">
+                  管理你的账号信息，查看个人资料、绑定联系方式、管理收藏和发布内容。
+                </p>
+                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                  进入 →
+                </Button>
+              </Card>
+
+              {/* Community */}
+              <Card 
+                className="p-8 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                onClick={() => navigate("/feed")}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-14 h-14 bg-secondary/10 rounded-lg flex items-center justify-center">
+                    <Users className="w-7 h-7 text-secondary" />
+                  </div>
+                  <span className="text-3xl">👥</span>
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-3">社区</h3>
+                <p className="text-foreground/70 mb-6">
+                  浏览美食分享、发布图文内容、与其他美食爱好者互动、点赞和评论。
+                </p>
+                <Button className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                  进入 →
+                </Button>
+              </Card>
+
+              {/* AI Chat */}
+              <Card 
+                className="p-8 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                onClick={() => navigate("/ai-chat")}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-14 h-14 bg-accent/10 rounded-lg flex items-center justify-center">
+                    <MessageSquare className="w-7 h-7 text-accent" />
+                  </div>
+                  <span className="text-3xl">🤖</span>
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-3">AI聊天</h3>
+                <p className="text-foreground/70 mb-6">
+                  与AI助手对话，根据你的口味、预算和场景需求，获得智能餐厅推荐。
+                </p>
+                <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                  进入 →
+                </Button>
+              </Card>
+
+              {/* Rankings */}
+              <Card 
+                className="p-8 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                onClick={() => navigate("/rankings")}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-14 h-14 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-7 h-7 text-yellow-600" />
+                  </div>
+                  <span className="text-3xl">🏆</span>
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-3">地区排行榜</h3>
+                <p className="text-foreground/70 mb-6">
+                  发现你所在地区最受欢迎的餐厅，按评分和热度排序，找到最好吃的地方。
+                </p>
+                <Button className="w-full bg-yellow-500 text-white hover:bg-yellow-600">
+                  进入 →
+                </Button>
+              </Card>
+            </div>
+
+            {/* Quick Actions */}
+            <Card className="p-8 bg-gradient-to-r from-primary/5 to-secondary/5">
+              <h3 className="text-xl font-bold text-foreground mb-4">快速操作</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                <Button 
+                  variant="outline"
+                  className="h-12"
+                  onClick={() => navigate("/publish")}
+                >
+                  <Utensils className="w-4 h-4 mr-2" />
+                  发布美食
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="h-12"
+                  onClick={() => navigate("/restaurants")}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  浏览餐厅
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="h-12"
+                  onClick={() => navigate("/ai-chat")}
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  AI推荐
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Unauthenticated view - Landing page
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header Navigation */}
@@ -44,30 +194,15 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-foreground/70">{user?.name}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    logout();
-                  }}
-                >
-                  退出
-                </Button>
-              </>
-            ) : (
-              <Button 
-                size="sm"
-                onClick={() => {
-                  window.location.href = getLoginUrl();
-                }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                登录
-              </Button>
-            )}
+            <Button 
+              size="sm"
+              onClick={() => {
+                window.location.href = getLoginUrl();
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              登录
+            </Button>
           </div>
         </div>
       </header>
