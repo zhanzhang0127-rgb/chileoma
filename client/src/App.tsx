@@ -12,6 +12,7 @@ import Restaurants from "./pages/Restaurants";
 import Rankings from "./pages/Rankings";
 import AiChat from "./pages/AiChat";
 import RestaurantDetail from "./pages/RestaurantDetail";
+import { ResponsiveNav } from "./components/ResponsiveNav";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -46,6 +47,7 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
+          <ResponsiveNav />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

@@ -77,16 +77,6 @@ export default function Feed() {
       {/* Main Content */}
       <main className="container py-8">
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* Welcome Banner */}
-          <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-0 p-6 rounded-2xl">
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              欢迎回来，{user?.name}！
-            </h2>
-            <p className="text-foreground/70">
-              发现美食，分享快乐。开始浏览社区的最新美食分享吧！
-            </p>
-          </Card>
-
           {/* Posts Feed */}
           {isLoading ? (
             <div className="flex justify-center py-12">

@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,6 +5,7 @@ import { Send, Loader2, Bot, User, Star, MapPin, Phone, Heart } from "lucide-rea
 import { useLocation } from "wouter";
 import { useEffect, useState, useRef } from "react";
 import { mockRestaurants } from "@/lib/mockData";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 interface RestaurantRecommendation {
   id: number;
