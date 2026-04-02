@@ -2,14 +2,28 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Loader2, Bot, User } from "lucide-react";
+import { Send, Loader2, Bot, User, Star, MapPin, Phone, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState, useRef } from "react";
+import { mockRestaurants } from "@/lib/mockData";
+
+interface RestaurantRecommendation {
+  id: number;
+  name: string;
+  cuisine: string;
+  address: string;
+  rating: number;
+  totalRatings: number;
+  priceLevel: string;
+  image: string;
+  description: string;
+}
 
 interface Message {
   id: string;
   role: "user" | "assistant";
-  content: string;
+  content?: string;
+  recommendations?: RestaurantRecommendation[];
   timestamp: Date;
 }
 
@@ -27,6 +41,7 @@ export default function AiChat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -55,24 +70,78 @@ export default function AiChat() {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response (in production, this would call your LLM API)
+    // Simulate AI response with restaurant recommendations
     setTimeout(() => {
-      const responses = [
-        "根据你的描述，我为你推荐以下几家餐厅：\n\n1. **美食天堂餐厅** - 中式菜系，人均100-150元\n   地址：北京市朝阳区\n   评分：4.8/5 (256评价)\n   特色：家常菜、地方特色菜\n\n2. **味蕾之旅** - 创意融合菜，人均200-300元\n   地址：北京市东城区\n   评分：4.7/5 (189评价)\n   特色：创意菜、精致摆盘\n\n3. **家的味道** - 粤菜，人均150-200元\n   地址：北京市西城区\n   评分：4.9/5 (312评价)\n   特色：正宗粤菜、点心",
-        "我了解了你的需求。根据你的预算和场景，我建议选择**味蕾之旅**。这家餐厅适合约会，环境优雅，菜品精致，虽然价格稍高，但性价比很好。\n\n你想了解更多关于这家餐厅的信息吗？或者你想要其他推荐？",
-        "太好了！我已经为你整理了推荐列表。你可以：\n\n1. 点击\"查看详情\"了解更多信息\n2. 添加到收藏以便后续查看\n3. 在地图上查看位置和导航\n4. 查看其他用户的评价和分享\n\n有其他问题吗？我随时准备帮助你！",
-      ];
+      const responseType = Math.floor(Math.random() * 2); // Changed from 3 to 2 to ensure recommendations appear more often
+      let assistantMessage: Message;
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date(),
-      };
+      if (true) { // Always show recommendations
+        // Response with restaurant recommendations
+        const recommendations: RestaurantRecommendation[] = [
+          mockRestaurants[0],
+          mockRestaurants[1],
+          mockRestaurants[2],
+        ].map(r => ({
+          id: r.id,
+          name: r.name,
+          cuisine: r.cuisine,
+          address: r.address,
+          rating: parseFloat(r.averageRating),
+          totalRatings: r.totalRatings,
+          priceLevel: r.priceLevel,
+          image: r.image,
+          description: r.description,
+        }));
+
+        assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "根据你的描述，我为你推荐以下几家餐厅：",
+          recommendations,
+          timestamp: new Date(),
+        };
+      } else if (responseType === 1) {
+        // Response with single recommendation
+        const recommendation: RestaurantRecommendation = {
+          id: mockRestaurants[0].id,
+          name: mockRestaurants[0].name,
+          cuisine: mockRestaurants[0].cuisine,
+          address: mockRestaurants[0].address,
+          rating: parseFloat(mockRestaurants[0].averageRating),
+          totalRatings: mockRestaurants[0].totalRatings,
+          priceLevel: mockRestaurants[0].priceLevel,
+          image: mockRestaurants[0].image,
+          description: mockRestaurants[0].description,
+        };
+
+        assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "根据你的需求，我最推荐这家餐厅。它完全符合你的需求，环境优雅，菜品精致，性价比也很好。",
+          recommendations: [recommendation],
+          timestamp: new Date(),
+        };
+      } else {
+        // Text-only response
+        assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "太好了！我已经为你整理了推荐列表。你可以点击\"收藏\"保存喜欢的餐厅，或者告诉我更多关于你的偏好，我会继续为你推荐。",
+          timestamp: new Date(),
+        };
+      }
 
       setMessages(prev => [...prev, assistantMessage]);
       setIsLoading(false);
     }, 1500);
+  };
+
+  const toggleFavorite = (restaurantId: number) => {
+    setFavorites(prev =>
+      prev.includes(restaurantId)
+        ? prev.filter(id => id !== restaurantId)
+        : [...prev, restaurantId]
+    );
   };
 
   if (loading || !isAuthenticated) {
@@ -98,8 +167,8 @@ export default function AiChat() {
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
-            <a href="/feed" className="text-foreground/70 hover:text-foreground transition-colors">首页</a>
-            <a href="/restaurants" className="text-foreground/70 hover:text-foreground transition-colors">餐厅</a>
+            <a href="/" className="text-foreground/70 hover:text-foreground transition-colors">首页</a>
+            <a href="/feed" className="text-foreground/70 hover:text-foreground transition-colors">社区</a>
             <a href="/rankings" className="text-foreground/70 hover:text-foreground transition-colors">排行榜</a>
             <a href="/ai-chat" className="text-foreground font-medium">AI助手</a>
           </nav>
@@ -118,38 +187,125 @@ export default function AiChat() {
 
       {/* Chat Container */}
       <main className="flex-1 container py-8 flex flex-col">
-        <div className="max-w-3xl mx-auto w-full flex flex-col h-full">
+        <div className="max-w-4xl mx-auto w-full flex flex-col h-full">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto mb-6 space-y-4 pr-4">
+          <div className="flex-1 overflow-y-auto mb-6 space-y-6 pr-4">
             {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                {message.role === "assistant" && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-primary" />
-                  </div>
-                )}
+              <div key={message.id}>
+                {/* Message bubble */}
+                <div
+                  className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  {message.role === "assistant" && (
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-primary" />
+                    </div>
+                  )}
 
-                <Card className={`max-w-lg p-4 ${
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted/50 text-foreground"
-                }`}>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-                  <p className={`text-xs mt-2 ${
-                    message.role === "user"
-                      ? "text-primary-foreground/70"
-                      : "text-foreground/60"
-                  }`}>
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
-                </Card>
+                  {message.content && (
+                    <Card className={`max-w-lg p-4 ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/50 text-foreground"
+                    }`}>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                      <p className={`text-xs mt-2 ${
+                        message.role === "user"
+                          ? "text-primary-foreground/70"
+                          : "text-foreground/60"
+                      }`}>
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                    </Card>
+                  )}
 
-                {message.role === "user" && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <User className="w-5 h-5 text-secondary" />
+                  {message.role === "user" && (
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+                      <User className="w-5 h-5 text-secondary" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Restaurant recommendations */}
+                {message.recommendations && message.recommendations.length > 0 && (
+                  <div className="mt-4 ml-11 space-y-3">
+                    {message.recommendations.map((restaurant) => (
+                      <Card key={restaurant.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        <div className="flex flex-col md:flex-row">
+                          {/* Image */}
+                          <div className="md:w-48 h-40 md:h-auto flex-shrink-0">
+                            <img
+                              src={restaurant.image}
+                              alt={restaurant.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 p-4 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h3 className="text-lg font-bold text-foreground">{restaurant.name}</h3>
+                                  <p className="text-sm text-foreground/60 mt-1">{restaurant.cuisine}</p>
+                                </div>
+                                <span className="text-sm font-semibold px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                                  {restaurant.priceLevel}
+                                </span>
+                              </div>
+
+                              <p className="text-sm text-foreground/70 mb-3 line-clamp-2">
+                                {restaurant.description}
+                              </p>
+
+                              {/* Rating */}
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="flex items-center gap-1">
+                                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-sm font-semibold text-foreground">
+                                    {restaurant.rating}
+                                  </span>
+                                  <span className="text-xs text-foreground/60">
+                                    ({restaurant.totalRatings}条评价)
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Address */}
+                              <div className="flex items-start gap-2 text-sm text-foreground/70 mb-3">
+                                <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <span>{restaurant.address}</span>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2 pt-3 border-t border-border">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => toggleFavorite(restaurant.id)}
+                              >
+                                <Heart
+                                  className={`w-4 h-4 mr-1 ${
+                                    favorites.includes(restaurant.id)
+                                      ? "fill-red-500 text-red-500"
+                                      : ""
+                                  }`}
+                                />
+                                {favorites.includes(restaurant.id) ? "已收藏" : "收藏"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                              >
+                                查看详情
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 )}
               </div>
