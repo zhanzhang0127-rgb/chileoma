@@ -43,74 +43,76 @@
 }
 
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
+  /* 黄色主题 - 儿童友好的明亮配色 */
+  --primary: oklch(0.82 0.2 90);      /* 亮黄色 */
+  --primary-foreground: oklch(0.2 0.05 30);  /* 深棕色 */
+  --sidebar-primary: oklch(0.78 0.18 85);    /* 柔和黄色 */
+  --sidebar-primary-foreground: oklch(0.2 0.05 30);
+  --chart-1: oklch(0.82 0.2 90);     /* 黄色 */
+  --chart-2: oklch(0.75 0.18 50);    /* 橙色 */
+  --chart-3: oklch(0.70 0.16 30);    /* 棕色 */
+  --chart-4: oklch(0.85 0.15 120);   /* 浅绿色 */
+  --chart-5: oklch(0.80 0.12 70);    /* 金色 */
+  --radius: 1rem;                    /* 更圆润的圆角 */
+  --background: oklch(0.96 0.04 90); /* 浅黄色背景 */
+  --foreground: oklch(0.2 0.05 30);  /* 深棕色文字 */
+  --card: oklch(1 0 0);              /* 白色卡片 */
+  --card-foreground: oklch(0.2 0.05 30);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
+  --popover-foreground: oklch(0.2 0.05 30);
+  --secondary: oklch(0.75 0.18 50);  /* 橙色 */
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.92 0.03 90);      /* 浅黄色 */
+  --muted-foreground: oklch(0.5 0.08 30);
+  --accent: oklch(0.82 0.2 90);      /* 亮黄色 */
+  --accent-foreground: oklch(0.2 0.05 30);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  --border: oklch(0.88 0.02 90);     /* 浅黄色边框 */
+  --input: oklch(0.94 0.03 90);      /* 输入框浅黄色 */
+  --ring: oklch(0.82 0.2 90);        /* 焦点环黄色 */
+  --sidebar: oklch(0.98 0.01 90);    /* 侧边栏浅黄色 */
+  --sidebar-foreground: oklch(0.2 0.05 30);
+  --sidebar-accent: oklch(0.92 0.03 90);
+  --sidebar-accent-foreground: oklch(0.2 0.05 30);
+  --sidebar-border: oklch(0.88 0.02 90);
+  --sidebar-ring: oklch(0.82 0.2 90);
 }
 
 .dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
+  /* 深色主题 - 黄色主题的深色变体 */
+  --primary: oklch(0.78 0.18 85);    /* 柔和黄色 */
+  --primary-foreground: oklch(0.2 0.05 30);
+  --sidebar-primary: oklch(0.72 0.16 80);
+  --sidebar-primary-foreground: oklch(0.95 0.02 90);
+  --background: oklch(0.25 0.05 30); /* 深棕色背景 */
+  --foreground: oklch(0.92 0.04 90); /* 浅黄色文字 */
+  --card: oklch(0.32 0.06 30);       /* 中棕色卡片 */
+  --card-foreground: oklch(0.92 0.04 90);
+  --popover: oklch(0.32 0.06 30);
+  --popover-foreground: oklch(0.92 0.04 90);
+  --secondary: oklch(0.65 0.15 50);  /* 深橙色 */
+  --secondary-foreground: oklch(0.95 0.02 90);
+  --muted: oklch(0.40 0.08 30);
+  --muted-foreground: oklch(0.75 0.12 90);
+  --accent: oklch(0.78 0.18 85);
+  --accent-foreground: oklch(0.2 0.05 30);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  --border: oklch(0.35 0.06 30);
+  --input: oklch(0.38 0.07 30);
+  --ring: oklch(0.78 0.18 85);
+  --chart-1: oklch(0.82 0.2 90);
+  --chart-2: oklch(0.75 0.18 50);
+  --chart-3: oklch(0.70 0.16 30);
+  --chart-4: oklch(0.85 0.15 120);
+  --chart-5: oklch(0.80 0.12 70);
+  --sidebar: oklch(0.28 0.05 30);
+  --sidebar-foreground: oklch(0.92 0.04 90);
+  --sidebar-accent: oklch(0.40 0.08 30);
+  --sidebar-accent-foreground: oklch(0.95 0.02 90);
+  --sidebar-border: oklch(0.35 0.06 30);
+  --sidebar-ring: oklch(0.78 0.18 85);
 }
 
 @layer base {

@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, posts, restaurants, comments, userProfiles, favorites, aiRecommendations, rankings } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,131 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Posts queries
+export async function createPost(post: typeof posts.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(posts).values(post);
+}
+
+export async function getPostsByUserId(userId: number, limit: number = 20, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(posts).where(eq(posts.userId, userId)).orderBy(desc(posts.createdAt)).limit(limit).offset(offset);
+}
+
+export async function getPostsForFeed(limit: number = 20, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(posts).orderBy(desc(posts.createdAt)).limit(limit).offset(offset);
+}
+
+export async function getPostById(postId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// Restaurant queries
+export async function createRestaurant(restaurant: typeof restaurants.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(restaurants).values(restaurant);
+}
+
+export async function getRestaurantById(restaurantId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(restaurants).where(eq(restaurants.id, restaurantId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getRestaurantsByCity(city: string, limit: number = 20, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(restaurants).where(eq(restaurants.city, city)).limit(limit).offset(offset);
+}
+
+export async function getRestaurantsByDistrict(city: string, district: string, limit: number = 20, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(restaurants).where(and(eq(restaurants.city, city), eq(restaurants.district, district))).limit(limit).offset(offset);
+}
+
+// User Profile queries
+export async function getUserProfile(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createOrUpdateUserProfile(profile: typeof userProfiles.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await getUserProfile(profile.userId);
+  if (existing) {
+    return db.update(userProfiles).set(profile).where(eq(userProfiles.userId, profile.userId));
+  } else {
+    return db.insert(userProfiles).values(profile);
+  }
+}
+
+// Favorites queries
+export async function addFavorite(userId: number, restaurantId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(favorites).values({ userId, restaurantId });
+}
+
+export async function removeFavorite(userId: number, restaurantId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(favorites).where(and(eq(favorites.userId, userId), eq(favorites.restaurantId, restaurantId)));
+}
+
+export async function getUserFavorites(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(favorites).where(eq(favorites.userId, userId));
+}
+
+// Comments queries
+export async function createComment(comment: typeof comments.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(comments).values(comment);
+}
+
+export async function getCommentsByPostId(postId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(comments).where(eq(comments.postId, postId)).orderBy(desc(comments.createdAt));
+}
+
+// AI Recommendations queries
+export async function createAiRecommendation(recommendation: typeof aiRecommendations.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(aiRecommendations).values(recommendation);
+}
+
+export async function getUserAiRecommendations(userId: number, limit: number = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(aiRecommendations).where(eq(aiRecommendations.userId, userId)).orderBy(desc(aiRecommendations.createdAt)).limit(limit);
+}
+
+// Rankings queries
+export async function getRankingsByCity(city: string, limit: number = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(rankings).where(eq(rankings.city, city)).orderBy(rankings.rank).limit(limit);
+}
+
+export async function getRankingsByDistrict(city: string, district: string, limit: number = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(rankings).where(and(eq(rankings.city, city), eq(rankings.district, district))).orderBy(rankings.rank).limit(limit);
+}

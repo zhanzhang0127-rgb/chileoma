@@ -5,12 +5,24 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Feed from "./pages/Feed";
+import Publish from "./pages/Publish";
+import Profile from "./pages/Profile";
+import Restaurants from "./pages/Restaurants";
+import Rankings from "./pages/Rankings";
+import AiChat from "./pages/AiChat";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/feed"} component={Feed} />
+      <Route path={"/publish"} component={Publish} />
+      <Route path={"/profile"} component={Profile} />
+      <Route path={"/restaurants"} component={Restaurants} />
+      <Route path={"/rankings"} component={Rankings} />
+      <Route path={"/ai-chat"} component={AiChat} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
