@@ -163,6 +163,30 @@ export const appRouter = router({
       .query(({ ctx }) => db.getUserFavorites(ctx.user.id)),
   }),
 
+  // Comments router
+  comments: router({
+    create: protectedProcedure
+      .input(z.object({
+        postId: z.number(),
+        content: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return db.createComment({
+          postId: input.postId,
+          userId: ctx.user.id,
+          content: input.content,
+        });
+      }),
+    
+    getByPostId: publicProcedure
+      .input(z.object({
+        postId: z.number(),
+        limit: z.number().default(20),
+        offset: z.number().default(0),
+      }))
+      .query(({ input }) => db.getCommentsByPostId(input.postId, input.limit, input.offset)),
+  }),
+
   // Rankings router
   rankings: router({
     getByCity: publicProcedure
@@ -179,6 +203,29 @@ export const appRouter = router({
         limit: z.number().default(20),
       }))
       .query(({ input }) => db.getRankingsByDistrict(input.city, input.district, input.limit)),
+  }),
+
+  aiRecommendations: router({
+    create: protectedProcedure
+      .input(z.object({
+        query: z.string(),
+        recommendations: z.string().optional(),
+        conversationHistory: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return db.createAiRecommendation({
+          userId: ctx.user.id,
+          query: input.query,
+          recommendations: input.recommendations,
+          conversationHistory: input.conversationHistory,
+        });
+      }),
+    
+    getMyRecommendations: protectedProcedure
+      .input(z.object({
+        limit: z.number().default(10),
+      }))
+      .query(({ ctx, input }) => db.getUserAiRecommendations(ctx.user.id, input.limit)),
   }),
 });
 
