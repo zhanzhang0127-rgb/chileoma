@@ -4,6 +4,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import { TRPCError } from "@trpc/server";
+import { storagePut } from "./storage";
 
 export const appRouter = router({
   system: systemRouter,
@@ -24,16 +26,46 @@ export const appRouter = router({
       .input(z.object({
         title: z.string().min(1),
         content: z.string(),
-        images: z.string().optional(),
+        images: z.array(z.string()).optional(),
         restaurantId: z.number().optional(),
         rating: z.number().min(1).max(5).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        let imageUrls: string[] = [];
+        
+        if (input.images && input.images.length > 0) {
+          for (let i = 0; i < input.images.length; i++) {
+            const imageData = input.images[i];
+            if (imageData.startsWith('data:')) {
+              try {
+                const parts = imageData.split(',');
+                const base64Data = parts[1];
+                if (!base64Data) {
+                  throw new TRPCError({ code: 'BAD_REQUEST', message: `Invalid image format at index ${i}` });
+                }
+                const buffer = Buffer.from(base64Data, 'base64');
+                if (buffer.length > 10 * 1024 * 1024) {
+                  throw new TRPCError({ code: 'PAYLOAD_TOO_LARGE', message: `Image ${i} exceeds 10MB limit` });
+                }
+                const key = `posts/${ctx.user.id}/${Date.now()}-${i}.jpg`;
+                const { url } = await storagePut(key, buffer, 'image/jpeg');
+                imageUrls.push(url);
+              } catch (error) {
+                if (error instanceof TRPCError) throw error;
+                console.error('Image upload failed:', error);
+                throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `Failed to upload image ${i}` });
+              }
+            } else if (imageData.startsWith('http')) {
+              imageUrls.push(imageData);
+            }
+          }
+        }
+        
         return db.createPost({
           userId: ctx.user.id,
           title: input.title,
           content: input.content,
-          images: input.images,
+          images: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
           restaurantId: input.restaurantId,
           rating: input.rating,
         });
@@ -57,6 +89,15 @@ export const appRouter = router({
     getById: publicProcedure
       .input(z.number())
       .query(({ input }) => db.getPostById(input)),
+    
+    delete: protectedProcedure
+      .input(z.number())
+      .mutation(async ({ ctx, input }) => {
+        const post = await db.getPostById(input);
+        if (!post) throw new TRPCError({ code: 'NOT_FOUND' });
+        if (post.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
+        return db.deletePost(input);
+      }),
   }),
 
   // Restaurants router

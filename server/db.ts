@@ -115,6 +115,12 @@ export async function getPostById(postId: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function deletePost(postId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(posts).where(eq(posts.id, postId));
+}
+
 // Restaurant queries
 export async function createRestaurant(restaurant: typeof restaurants.$inferInsert) {
   const db = await getDb();
@@ -186,10 +192,10 @@ export async function createComment(comment: typeof comments.$inferInsert) {
   return db.insert(comments).values(comment);
 }
 
-export async function getCommentsByPostId(postId: number) {
+export async function getCommentsByPostId(postId: number, limit: number = 20, offset: number = 0) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(comments).where(eq(comments.postId, postId)).orderBy(desc(comments.createdAt));
+  return db.select().from(comments).where(eq(comments.postId, postId)).orderBy(desc(comments.createdAt)).limit(limit).offset(offset);
 }
 
 // AI Recommendations queries
