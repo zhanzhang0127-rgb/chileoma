@@ -191,9 +191,27 @@ export async function getRestaurantsByDistrict(city: string, district: string, l
 // User Profile queries
 export async function getUserProfile(userId: number) {
   const db = await getDb();
-  if (!db) return undefined;
+  if (!db) return null;
   const result = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  if (result.length > 0) {
+    return result[0];
+  }
+  // Create default profile if it doesn't exist
+  const defaultProfile = {
+    userId,
+    phone: null,
+    wechatId: null,
+    qqId: null,
+    avatar: null,
+    bio: null,
+    location: null,
+    latitude: null,
+    longitude: null,
+    preferences: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  return defaultProfile;
 }
 
 export async function createOrUpdateUserProfile(profile: typeof userProfiles.$inferInsert) {
