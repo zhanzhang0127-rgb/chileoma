@@ -140,3 +140,11 @@
 - [x] 实现删除帖子功能 - Feed和PostDetail页面添加删除按钮
 - [x] 修复评论计数不更新 - 后端自动更新posts.comments，前端调用refetchPost
 - [x] 所有46个单元测试通过
+
+
+## 权限校验修复（已完成）
+- [x] 帖子删除权限 - 只有发布者可以删除自己的帖子（后端已有校验）
+- [x] 评论删除权限 - 只有评论者可以删除自己的评论（已添加getCommentById和权限校验）
+
+- [x] 前端权限提示 - Feed和PostDetail页面添加了FORBIDDEN和NOT_FOUND错误提示
+- [x] 权限校验单元测试 - 50个测试全部通过

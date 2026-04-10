@@ -189,7 +189,10 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.number())
       .mutation(async ({ ctx, input }) => {
-        // For now, allow deletion (can add ownership check later)
+        // Check if comment exists and belongs to the user
+        const comment = await db.getCommentById(input);
+        if (!comment) throw new TRPCError({ code: 'NOT_FOUND' });
+        if (comment.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
         return db.deleteComment(input);
       }),
     

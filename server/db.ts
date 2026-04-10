@@ -274,6 +274,21 @@ export async function getCommentsByPostId(postId: number, limit: number = 20, of
   return result;
 }
 
+export async function getCommentById(commentId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select({
+    id: comments.id,
+    postId: comments.postId,
+    userId: comments.userId,
+    content: comments.content,
+    likes: comments.likes,
+    createdAt: comments.createdAt,
+    updatedAt: comments.updatedAt,
+  }).from(comments).where(eq(comments.id, commentId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
 export async function deleteComment(commentId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

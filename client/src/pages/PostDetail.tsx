@@ -119,8 +119,14 @@ export default function PostDetail() {
       refetchComments();
       refetchPost();
     },
-    onError: (error) => {
-      toast.error("删除失败：" + error.message);
+    onError: (error: any) => {
+      if (error.code === "FORBIDDEN") {
+        toast.error("您没有权限删除这条评论");
+      } else if (error.code === "NOT_FOUND") {
+        toast.error("评论不存在");
+      } else {
+        toast.error("删除失败：" + error.message);
+      }
     },
   });
 
@@ -130,8 +136,14 @@ export default function PostDetail() {
       toast.success("帖子已删除");
       navigate("/feed");
     },
-    onError: (error) => {
-      toast.error("删除失败：" + error.message);
+    onError: (error: any) => {
+      if (error.code === "FORBIDDEN") {
+        toast.error("您没有权限删除这个帖子");
+      } else if (error.code === "NOT_FOUND") {
+        toast.error("帖子不存在");
+      } else {
+        toast.error("删除失败：" + error.message);
+      }
     },
   });
 

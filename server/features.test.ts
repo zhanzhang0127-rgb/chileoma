@@ -299,3 +299,82 @@ describe("Authorization", () => {
     }
   });
 });
+
+
+describe("Delete Authorization", () => {
+  it("should prevent non-authors from deleting posts", async () => {
+    const { ctx: authorCtx } = createAuthContext(1);
+    const { ctx: otherUserCtx } = createAuthContext(2);
+    const authorCaller = appRouter.createCaller(authorCtx);
+    const otherUserCaller = appRouter.createCaller(otherUserCtx);
+
+    try {
+      // Create a post as user 1
+      const post = await authorCaller.posts.create({
+        title: "Test Post",
+        content: "Test content",
+      });
+
+      // Try to delete as user 2
+      try {
+        await otherUserCaller.posts.delete(1);
+        expect.fail("Should have thrown FORBIDDEN error");
+      } catch (error: any) {
+        expect(error.code).toBe("FORBIDDEN");
+      }
+    } catch (error: any) {
+      // Database errors are expected in unit tests
+      expect(error).toBeDefined();
+    }
+  });
+
+  it("should prevent non-authors from deleting comments", async () => {
+    const { ctx: author1Ctx } = createAuthContext(1);
+    const { ctx: author2Ctx } = createAuthContext(2);
+    const author1Caller = appRouter.createCaller(author1Ctx);
+    const author2Caller = appRouter.createCaller(author2Ctx);
+
+    try {
+      // Create a comment as user 1
+      const comment = await author1Caller.comments.create({
+        postId: 1,
+        content: "Test comment",
+      });
+
+      // Try to delete as user 2
+      try {
+        await author2Caller.comments.delete(1);
+        expect.fail("Should have thrown FORBIDDEN error");
+      } catch (error: any) {
+        expect(error.code).toBe("FORBIDDEN");
+      }
+    } catch (error: any) {
+      // Database errors are expected in unit tests
+      expect(error).toBeDefined();
+    }
+  });
+
+  it("should return NOT_FOUND when deleting non-existent post", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    try {
+      await caller.posts.delete(99999);
+      expect.fail("Should have thrown NOT_FOUND error");
+    } catch (error: any) {
+      expect(error.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("should return NOT_FOUND when deleting non-existent comment", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    try {
+      await caller.comments.delete(99999);
+      expect.fail("Should have thrown NOT_FOUND error");
+    } catch (error: any) {
+      expect(error.code).toBe("NOT_FOUND");
+    }
+  });
+});

@@ -113,8 +113,14 @@ export default function Feed() {
       setAllPosts(prev => prev.filter(p => p.id !== variables));
       toast.success("帖子已删除");
     },
-    onError: (error) => {
-      toast.error("删除失败：" + error.message);
+    onError: (error: any) => {
+      if (error.code === "FORBIDDEN") {
+        toast.error("您没有权限删除这个帖子");
+      } else if (error.code === "NOT_FOUND") {
+        toast.error("帖子不存在");
+      } else {
+        toast.error("删除失败：" + error.message);
+      }
     },
   });
 
@@ -136,8 +142,12 @@ export default function Feed() {
     }
   };
 
-  const handleDeletePost = (postId: number, e: React.MouseEvent) => {
+  const handleDeletePost = (postId: number, userId: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (user?.id !== userId) {
+      toast.error("您没有权限删除这个帖子");
+      return;
+    }
     if (confirm("确定要删除这个帖子吗？")) {
       deletePostMutation.mutate(postId);
     }
@@ -233,7 +243,7 @@ export default function Feed() {
                         )}
                         {user?.id === post.userId && (
                           <button
-                            onClick={(e) => handleDeletePost(post.id, e)}
+                            onClick={(e) => handleDeletePost(post.id, post.userId, e)}
                             disabled={deletePostMutation.isPending}
                             className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"
                             title="删除帖子"
