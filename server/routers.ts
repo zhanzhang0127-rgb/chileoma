@@ -147,6 +147,12 @@ export const appRouter = router({
           ...input,
         });
       }),
+    
+    updateName: protectedProcedure
+      .input(z.string().min(1).max(50))
+      .mutation(async ({ ctx, input }) => {
+        return db.updateUserName(ctx.user.id, input);
+      }),
   }),
 
   // Favorites router

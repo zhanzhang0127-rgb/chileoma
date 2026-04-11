@@ -14,6 +14,8 @@ import { zhCN } from "date-fns/locale";
 export default function Profile() {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
+  const [name, setName] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
   const [phone, setPhone] = useState("");
   const [wechatId, setWechatId] = useState("");
   const [qqId, setQqId] = useState("");
@@ -46,12 +48,25 @@ export default function Profile() {
 
   // Initialize form with profile data
   useEffect(() => {
+    if (user?.name) {
+      setName(user.name);
+    }
     if (profile) {
       setPhone(profile.phone || "");
       setWechatId(profile.wechatId || "");
       setQqId(profile.qqId || "");
     }
-  }, [profile]);
+  }, [profile, user?.name]);
+
+  const updateNameMutation = trpc.profile.updateName.useMutation({
+    onSuccess: () => {
+      toast.success("昵称已更新");
+      setIsEditingName(false);
+    },
+    onError: (error) => {
+      toast.error("更新失败：" + error.message);
+    },
+  });
 
   const updateProfileMutation = trpc.profile.update.useMutation({
     onSuccess: () => {
@@ -61,6 +76,19 @@ export default function Profile() {
       toast.error("更新失败：" + error.message);
     },
   });
+
+  const handleSaveName = async () => {
+    if (!name.trim()) {
+      toast.error("昵称不能为空");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await updateNameMutation.mutateAsync(name.trim());
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -126,7 +154,46 @@ export default function Profile() {
                 </span>
               </div>
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-foreground mb-2">{user?.name || "用户"}</h1>
+                {isEditingName ? (
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="输入新昵称"
+                      maxLength={50}
+                      className="text-lg font-bold"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveName}
+                      disabled={isSaving}
+                    >
+                      保存
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setName(user?.name || "");
+                      }}
+                      disabled={isSaving}
+                    >
+                      取消
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mb-2">
+                    <h1 className="text-3xl font-bold text-foreground">{user?.name || "用户"}</h1>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsEditingName(true)}
+                    >
+                      编辑
+                    </Button>
+                  </div>
+                )}
                 <p className="text-foreground/70">{user?.email || "未绑定邮箱"}</p>
               </div>
               <Button 

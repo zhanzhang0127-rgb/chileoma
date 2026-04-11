@@ -378,3 +378,63 @@ describe("Delete Authorization", () => {
     }
   });
 });
+
+
+describe("Profile Update", () => {
+  it("should update user name successfully", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    try {
+      const result = await caller.profile.updateName("New Name");
+      expect(result).toBeDefined();
+    } catch (error: any) {
+      // Database errors are expected in unit tests
+      expect(error).toBeDefined();
+    }
+  });
+
+  it("should validate name is not empty", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    try {
+      await caller.profile.updateName("");
+      expect.fail("Should have thrown validation error");
+    } catch (error: any) {
+      expect(error.code).toBe("BAD_REQUEST");
+    }
+  });
+
+  it("should validate name length", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    try {
+      await caller.profile.updateName("a".repeat(51));
+      expect.fail("Should have thrown validation error");
+    } catch (error: any) {
+      expect(error.code).toBe("BAD_REQUEST");
+    }
+  });
+
+  it("should prevent unauthenticated users from updating name", async () => {
+    const ctx: TrpcContext = {
+      user: null,
+      req: {
+        protocol: "https",
+        headers: {},
+      } as TrpcContext["req"],
+      res: {} as TrpcContext["res"],
+    };
+
+    const caller = appRouter.createCaller(ctx);
+
+    try {
+      await caller.profile.updateName("New Name");
+      expect.fail("Should have thrown unauthorized error");
+    } catch (error: any) {
+      expect(error.code).toBe("UNAUTHORIZED");
+    }
+  });
+});

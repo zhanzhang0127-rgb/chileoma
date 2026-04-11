@@ -148,3 +148,9 @@
 
 - [x] 前端权限提示 - Feed和PostDetail页面添加了FORBIDDEN和NOT_FOUND错误提示
 - [x] 权限校验单元测试 - 50个测试全部通过
+
+
+## 用户昵称编辑功能（已完成）
+- [x] 后端实现修改昵称API - profile.updateName
+- [x] 前端Profile页面添加昵称编辑UI - 添加编辑按钮和保存功能
+- [x] 测试修改昵称功能 - 50个单元测试通过

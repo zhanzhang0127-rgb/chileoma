@@ -373,3 +373,12 @@ export async function getRankingsByDistrict(city: string, district: string, limi
   if (!db) return [];
   return db.select().from(rankings).where(and(eq(rankings.city, city), eq(rankings.district, district))).orderBy(rankings.rank).limit(limit);
 }
+
+
+// User name update
+export async function updateUserName(userId: number, name: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (!name || name.trim().length === 0) throw new Error("Name cannot be empty");
+  return db.update(users).set({ name: name.trim() }).where(eq(users.id, userId));
+}
