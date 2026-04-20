@@ -347,6 +347,31 @@ export async function getMyLikedPosts(userId: number): Promise<number[]> {
   return result.map(r => r.postId);
 }
 
+export async function getMyLikedPostsWithDetails(userId: number, limit: number = 20, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.select({
+    id: posts.id,
+    userId: posts.userId,
+    title: posts.title,
+    content: posts.content,
+    images: posts.images,
+    restaurantId: posts.restaurantId,
+    rating: posts.rating,
+    likes: posts.likes,
+    comments: posts.comments,
+    createdAt: posts.createdAt,
+    updatedAt: posts.updatedAt,
+    userName: users.name,
+  }).from(postLikes)
+    .innerJoin(posts, eq(postLikes.postId, posts.id))
+    .leftJoin(users, eq(posts.userId, users.id))
+    .where(eq(postLikes.userId, userId))
+    .orderBy(desc(postLikes.createdAt))
+    .limit(limit).offset(offset);
+  return result;
+}
+
 export async function getMyLikedComments(userId: number): Promise<number[]> {
   const db = await getDb();
   if (!db) return [];

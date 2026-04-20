@@ -222,6 +222,11 @@ export const appRouter = router({
         return db.getMyLikedPosts(ctx.user.id);
       }),
 
+    getMyLikedPostsWithDetails: protectedProcedure
+      .query(async ({ ctx }) => {
+        return db.getMyLikedPostsWithDetails(ctx.user.id);
+      }),
+
     getMyLikedComments: protectedProcedure
       .query(async ({ ctx }) => {
         return db.getMyLikedComments(ctx.user.id);
