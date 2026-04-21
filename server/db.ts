@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, posts, restaurants, comments, userProfiles, favorites, aiRecommendations, rankings, postLikes, commentLikes } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -483,10 +483,10 @@ export async function updateRestaurantStatus(id: number, status: "published" | "
 export async function getAdminStats() {
   const db = await getDb();
   if (!db) return { totalUsers: 0, totalPosts: 0, totalRestaurants: 0, pendingRestaurants: 0 };
-  const [usersCount] = await db.select({ count: users.id }).from(users);
-  const [postsCount] = await db.select({ count: posts.id }).from(posts);
-  const [restaurantsCount] = await db.select({ count: restaurants.id }).from(restaurants);
-  const [pendingCount] = await db.select({ count: restaurants.id }).from(restaurants).where(eq(restaurants.status, 'pending'));
+  const [usersCount] = await db.select({ count: count() }).from(users);
+  const [postsCount] = await db.select({ count: count() }).from(posts);
+  const [restaurantsCount] = await db.select({ count: count() }).from(restaurants);
+  const [pendingCount] = await db.select({ count: count() }).from(restaurants).where(eq(restaurants.status, 'pending'));
   return {
     totalUsers: usersCount?.count ?? 0,
     totalPosts: postsCount?.count ?? 0,
