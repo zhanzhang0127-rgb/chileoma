@@ -56,8 +56,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      // Owner gets super_admin on first insert, but never overwrite existing role on update
+      values.role = 'super_admin';
+      // Do NOT add to updateSet - this ensures role is only set on INSERT, not on duplicate key UPDATE
     }
 
     if (!values.lastSignedIn) {
