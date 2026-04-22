@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export function ResponsiveNav() {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
   // Don't show nav on home/landing page or admin page
   if (location === "/" || location.startsWith("/admin")) return null;

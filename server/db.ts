@@ -1,4 +1,4 @@
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, posts, restaurants, comments, userProfiles, favorites, aiRecommendations, rankings, postLikes, commentLikes } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -509,4 +509,27 @@ export async function getPublishedRestaurants(limit: number = 20, offset: number
     .orderBy(desc(restaurants.createdAt))
     .limit(limit)
     .offset(offset);
+}
+
+export async function getAdminUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    createdAt: users.createdAt,
+    lastSignedIn: users.lastSignedIn,
+  }).from(users)
+    .where(sql`${users.role} IN ('admin', 'super_admin')`)
+    .orderBy(desc(users.createdAt));
+}
+
+export async function setUserRole(userId: number, role: 'user' | 'admin' | 'super_admin') {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+  const [updated] = await db.select().from(users).where(eq(users.id, userId));
+  return updated;
 }

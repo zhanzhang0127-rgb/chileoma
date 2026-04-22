@@ -4,12 +4,12 @@ import type { TrpcContext } from "./_core/context";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-function createCtx(role: "user" | "admin"): TrpcContext {
+function createCtx(role: "user" | "admin" | "super_admin"): TrpcContext {
   const user: AuthenticatedUser = {
-    id: role === "admin" ? 1 : 999,
-    openId: role === "admin" ? "admin-open-id" : "user-open-id",
-    email: role === "admin" ? "admin@example.com" : "user@example.com",
-    name: role === "admin" ? "Admin User" : "Regular User",
+    id: role === "super_admin" ? 1 : role === "admin" ? 2 : 999,
+    openId: role === "super_admin" ? "super-admin-open-id" : role === "admin" ? "admin-open-id" : "user-open-id",
+    email: role === "super_admin" ? "superadmin@example.com" : role === "admin" ? "admin@example.com" : "user@example.com",
+    name: role === "super_admin" ? "Super Admin" : role === "admin" ? "Admin User" : "Regular User",
     loginMethod: "manus",
     role,
     createdAt: new Date(),
@@ -53,6 +53,21 @@ describe("Admin Router - Permission Guard", () => {
     await expect(caller.admin.getUsers({ limit: 10, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("should reject admin users from getUsers with FORBIDDEN (super_admin only)", async () => {
+    const caller = appRouter.createCaller(createCtx("admin"));
+    await expect(caller.admin.getUsers({ limit: 10, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("should reject admin users from getAdmins with FORBIDDEN (super_admin only)", async () => {
+    const caller = appRouter.createCaller(createCtx("admin"));
+    await expect(caller.admin.getAdmins()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("should reject admin users from setUserRole with FORBIDDEN (super_admin only)", async () => {
+    const caller = appRouter.createCaller(createCtx("admin"));
+    await expect(caller.admin.setUserRole({ userId: 999, role: "admin" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("should reject regular users from createRestaurant with FORBIDDEN", async () => {
     const caller = appRouter.createCaller(createCtx("user"));
     await expect(
@@ -72,14 +87,12 @@ describe("Admin Router - Permission Guard", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("admin user should be able to call getStats (returns data or throws DB error, not FORBIDDEN)", async () => {
+  it("admin user should be able to call getStats (not FORBIDDEN)", async () => {
     const caller = appRouter.createCaller(createCtx("admin"));
-    // In test environment DB may not be available, but should NOT throw FORBIDDEN
     try {
       const result = await caller.admin.getStats();
       expect(result).toBeDefined();
     } catch (e: any) {
-      // Should not be FORBIDDEN - any other error (like DB unavailable) is acceptable
       expect(e.code).not.toBe("FORBIDDEN");
       expect(e.code).not.toBe("UNAUTHORIZED");
     }
@@ -94,6 +107,23 @@ describe("Admin Router - Permission Guard", () => {
       expect(e.code).not.toBe("FORBIDDEN");
       expect(e.code).not.toBe("UNAUTHORIZED");
     }
+  });
+
+  it("super_admin should be able to call getAdmins (not FORBIDDEN)", async () => {
+    const caller = appRouter.createCaller(createCtx("super_admin"));
+    try {
+      const result = await caller.admin.getAdmins();
+      expect(Array.isArray(result)).toBe(true);
+    } catch (e: any) {
+      expect(e.code).not.toBe("FORBIDDEN");
+      expect(e.code).not.toBe("UNAUTHORIZED");
+    }
+  });
+
+  it("super_admin should NOT be able to change their own role", async () => {
+    const caller = appRouter.createCaller(createCtx("super_admin"));
+    // super_admin id is 1 in createCtx
+    await expect(caller.admin.setUserRole({ userId: 1, role: "admin" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
 

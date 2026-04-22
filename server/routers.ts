@@ -7,11 +7,19 @@ import * as db from "./db";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
 import { ENV } from "./_core/env";
-import fetch from "node-fetch";
+// Using native fetch (Node 18+)
 
-// Admin-only procedure middleware
+// Admin procedure: allows both admin and super_admin
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: '需要管理员权限' });
+  if (ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin')
+    throw new TRPCError({ code: 'FORBIDDEN', message: '需要管理员权限' });
+  return next({ ctx });
+});
+
+// Super admin procedure: only super_admin
+const superAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== 'super_admin')
+    throw new TRPCError({ code: 'FORBIDDEN', message: '需要超级管理员权限' });
   return next({ ctx });
 });
 
@@ -354,10 +362,26 @@ export const appRouter = router({
     getStats: adminProcedure
       .query(() => db.getAdminStats()),
 
-    // 用户管理
-    getUsers: adminProcedure
+    // 用户管理（仅 super_admin）
+    getUsers: superAdminProcedure
       .input(z.object({ limit: z.number().default(100), offset: z.number().default(0) }))
       .query(({ input }) => db.getAllUsers(input.limit, input.offset)),
+
+    // 管理员管理（仅 super_admin）
+    getAdmins: superAdminProcedure
+      .query(() => db.getAdminUsers()),
+
+    setUserRole: superAdminProcedure
+      .input(z.object({
+        userId: z.number(),
+        role: z.enum(['user', 'admin', 'super_admin']),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // 防止修改自己的角色
+        if (input.userId === ctx.user.id)
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '不能修改自己的角色' });
+        return db.setUserRole(input.userId, input.role);
+      }),
 
     // 餐厅管理
     getRestaurants: adminProcedure

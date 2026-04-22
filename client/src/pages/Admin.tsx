@@ -46,7 +46,33 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-type AdminTab = "overview" | "restaurants" | "users";
+type AdminTab = "overview" | "restaurants" | "users" | "admins";
+
+function PromoteUserForm({ onPromote, isPending }: { onPromote: (userId: number) => void; isPending: boolean }) {
+  const [inputId, setInputId] = useState("");
+  return (
+    <div className="flex gap-2">
+      <Input
+        type="number"
+        placeholder="输入用户 ID"
+        value={inputId}
+        onChange={(e) => setInputId(e.target.value)}
+        className="max-w-xs"
+      />
+      <Button
+        onClick={() => {
+          const id = parseInt(inputId);
+          if (!id || isNaN(id)) { return; }
+          onPromote(id);
+          setInputId("");
+        }}
+        disabled={isPending || !inputId}
+      >
+        {isPending ? "设置中..." : "设为管理员"}
+      </Button>
+    </div>
+  );
+}
 
 const CUISINE_OPTIONS = ["中餐", "西餐", "日料", "韩餐", "快餐", "小吃", "甜品", "饮品", "其他"];
 const PRICE_OPTIONS = ["¥ 便宜（人均 < 30）", "¥¥ 中等（人均 30-80）", "¥¥¥ 较贵（人均 > 80）"];
@@ -76,33 +102,49 @@ export default function Admin() {
     status: "published" as "published" | "pending" | "rejected",
   });
 
+  const isSuperAdmin = user?.role === "super_admin";
+  const isAdminOrAbove = user?.role === "admin" || user?.role === "super_admin";
+
   // Redirect if not admin
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
         navigate("/");
-      } else if (user?.role !== "admin") {
+      } else if (!isAdminOrAbove) {
         toast.error("无权访问管理员后台");
         navigate("/feed");
       }
     }
-  }, [loading, isAuthenticated, user, navigate]);
+  }, [loading, isAuthenticated, isAdminOrAbove, navigate]);
 
   const utils = trpc.useUtils();
 
   const { data: stats } = trpc.admin.getStats.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === "admin",
+    enabled: isAuthenticated && isAdminOrAbove,
   });
 
   const { data: restaurants, isLoading: isLoadingRestaurants } = trpc.admin.getRestaurants.useQuery(
     { limit: 200, offset: 0 },
-    { enabled: isAuthenticated && user?.role === "admin" && activeTab === "restaurants" }
+    { enabled: isAuthenticated && isAdminOrAbove && activeTab === "restaurants" }
   );
 
   const { data: usersList, isLoading: isLoadingUsers } = trpc.admin.getUsers.useQuery(
     { limit: 200, offset: 0 },
-    { enabled: isAuthenticated && user?.role === "admin" && activeTab === "users" }
+    { enabled: isAuthenticated && isSuperAdmin && activeTab === "users" }
   );
+
+  const { data: adminsList, isLoading: isLoadingAdmins } = trpc.admin.getAdmins.useQuery(undefined, {
+    enabled: isAuthenticated && isSuperAdmin && activeTab === "admins",
+  });
+
+  const setRoleMutation = trpc.admin.setUserRole.useMutation({
+    onSuccess: () => {
+      toast.success("权限已更新");
+      utils.admin.getAdmins.invalidate();
+      utils.admin.getUsers.invalidate();
+    },
+    onError: (e) => toast.error("更新失败：" + e.message),
+  });
 
   const createMutation = trpc.admin.createRestaurant.useMutation({
     onSuccess: () => {
@@ -205,7 +247,7 @@ export default function Admin() {
     return <Badge className="bg-red-100 text-red-700 border-red-200">已拒绝</Badge>;
   };
 
-  if (loading || !isAuthenticated || user?.role !== "admin") {
+  if (loading || !isAuthenticated || !isAdminOrAbove) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
@@ -222,15 +264,19 @@ export default function Admin() {
             <span className="text-xl font-bold text-primary">吃了吗</span>
             <Badge variant="outline" className="text-xs">管理后台</Badge>
           </div>
-          <p className="text-xs text-foreground/50">Hi，{user?.name || "管理员"}</p>
+          <p className="text-xs text-foreground/50">
+            Hi，{user?.name || "管理员"}
+            {isSuperAdmin && <span className="ml-1 text-primary font-semibold">★ 总管</span>}
+          </p>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
           {[
-            { id: "overview", label: "数据概览", icon: LayoutDashboard },
-            { id: "restaurants", label: "餐厅管理", icon: UtensilsCrossed },
-            { id: "users", label: "用户列表", icon: Users },
-          ].map(({ id, label, icon: Icon }) => (
+            { id: "overview", label: "数据概览", icon: LayoutDashboard, show: true },
+            { id: "restaurants", label: "餐厅管理", icon: UtensilsCrossed, show: true },
+            { id: "users", label: "用户列表", icon: Users, show: isSuperAdmin },
+            { id: "admins", label: "管理员管理", icon: Users, show: isSuperAdmin },
+          ].filter(item => item.show).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id as AdminTab)}
@@ -289,9 +335,16 @@ export default function Admin() {
                 <Button variant="outline" onClick={() => setActiveTab("restaurants")} className="gap-2">
                   <UtensilsCrossed className="w-4 h-4" /> 管理餐厅
                 </Button>
+                {isSuperAdmin && (
                 <Button variant="outline" onClick={() => setActiveTab("users")} className="gap-2">
                   <Users className="w-4 h-4" /> 查看用户
                 </Button>
+              )}
+              {isSuperAdmin && (
+                <Button variant="outline" onClick={() => setActiveTab("admins")} className="gap-2">
+                  <Users className="w-4 h-4" /> 管理员管理
+                </Button>
+              )}
               </div>
             </Card>
           </div>
@@ -376,8 +429,8 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Users Tab */}
-        {activeTab === "users" && (
+        {/* Users Tab - super_admin only */}
+        {activeTab === "users" && isSuperAdmin && (
           <div>
             <h1 className="text-2xl font-bold text-foreground mb-6">用户列表</h1>
             {isLoadingUsers ? (
@@ -396,6 +449,7 @@ export default function Admin() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-foreground">{u.name || "未设置昵称"}</p>
                           {u.role === "admin" && <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">管理员</Badge>}
+                          {u.role === "super_admin" && <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">总管</Badge>}
                         </div>
                         <p className="text-sm text-foreground/60">{u.email}</p>
                       </div>
@@ -411,6 +465,66 @@ export default function Admin() {
                 <p className="text-foreground/60">暂无用户数据</p>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Admins Tab - super_admin only */}
+        {activeTab === "admins" && isSuperAdmin && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold text-foreground">管理员管理</h1>
+            </div>
+            <p className="text-sm text-foreground/60 mb-4">设置用户为管理员后，对方可以登录管理后台并审核餐厅。仅您可以设置或撤销管理员权限。</p>
+
+            {/* Current admins */}
+            <h2 className="text-lg font-semibold text-foreground mb-3">当前管理员</h2>
+            {isLoadingAdmins ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" />
+              </div>
+            ) : adminsList && adminsList.length > 0 ? (
+              <div className="space-y-2 mb-8">
+                {adminsList.map((a: any) => (
+                  <Card key={a.id} className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-primary text-sm">{a.name?.charAt(0) || "A"}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">{a.name || "未设置昵称"}</p>
+                          {a.role === "super_admin" && <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">总管</Badge>}
+                          {a.role === "admin" && <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">管理员</Badge>}
+                        </div>
+                        <p className="text-sm text-foreground/60">{a.email}</p>
+                      </div>
+                      {a.role === "admin" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-500 border-red-200 hover:bg-red-50"
+                          onClick={() => setRoleMutation.mutate({ userId: a.id, role: "user" })}
+                          disabled={setRoleMutation.isPending}
+                        >
+                          撤销权限
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-8 text-center mb-8">
+                <p className="text-foreground/60">暂无其他管理员</p>
+              </Card>
+            )}
+
+            {/* Promote user to admin */}
+            <h2 className="text-lg font-semibold text-foreground mb-3">添加管理员</h2>
+            <Card className="p-5">
+              <p className="text-sm text-foreground/60 mb-3">输入用户 ID 将其设为管理员（可在用户列表中查看用户 ID）</p>
+              <PromoteUserForm onPromote={(userId) => setRoleMutation.mutate({ userId, role: "admin" })} isPending={setRoleMutation.isPending} />
+            </Card>
           </div>
         )}
       </main>
