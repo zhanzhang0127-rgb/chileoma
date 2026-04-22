@@ -44,6 +44,8 @@ import {
   Clock,
   Image,
   ArrowLeft,
+  ShieldCheck,
+  UserPlus,
 } from "lucide-react";
 
 type AdminTab = "overview" | "restaurants" | "users" | "admins";
@@ -275,6 +277,7 @@ export default function Admin() {
             { id: "overview", label: "数据概览", icon: LayoutDashboard, show: true },
             { id: "restaurants", label: "餐厅管理", icon: UtensilsCrossed, show: true },
             { id: "users", label: "用户列表", icon: Users, show: isSuperAdmin },
+            { id: "admins", label: "管理员管理", icon: ShieldCheck, show: isSuperAdmin },
           ].filter(item => item.show).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -495,21 +498,37 @@ export default function Admin() {
         {/* Admins Tab - super_admin only */}
         {activeTab === "admins" && isSuperAdmin && (
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-2">
               <h1 className="text-2xl font-bold text-foreground">管理员管理</h1>
+              <Badge className="bg-primary/10 text-primary border-primary/20">
+                共 {adminsList ? adminsList.filter((a: any) => a.role === "admin").length : 0} 位管理员
+              </Badge>
             </div>
-            <p className="text-sm text-foreground/60 mb-4">设置用户为管理员后，对方可以登录管理后台并审核餐厅。仅您可以设置或撤销管理员权限。</p>
+            <p className="text-sm text-foreground/60 mb-6">设置用户为管理员后，对方可以登录管理后台并审核餐厅。仅您可以设置或撤销管理员权限。</p>
 
-            {/* Current admins */}
-            <h2 className="text-lg font-semibold text-foreground mb-3">当前管理员</h2>
+            {/* Add admin */}
+            <Card className="p-5 mb-6 border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-3">
+                <UserPlus className="w-4 h-4 text-primary" />
+                <h2 className="text-base font-semibold text-foreground">添加管理员</h2>
+              </div>
+              <p className="text-sm text-foreground/60 mb-3">输入用户 ID 将其设为管理员（可在用户列表中查看用户 ID）</p>
+              <PromoteUserForm onPromote={(userId) => setRoleMutation.mutate({ userId, role: "admin" })} isPending={setRoleMutation.isPending} />
+            </Card>
+
+            {/* Current admins list */}
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">当前管理员列表</h2>
+            </div>
             {isLoadingAdmins ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" />
               </div>
-            ) : adminsList && adminsList.length > 0 ? (
-              <div className="space-y-2 mb-8">
-                {adminsList.map((a: any) => (
-                  <Card key={a.id} className="p-4">
+            ) : adminsList && adminsList.filter((a: any) => a.role === "admin").length > 0 ? (
+              <div className="space-y-2">
+                {adminsList.filter((a: any) => a.role === "admin").map((a: any) => (
+                  <Card key={a.id} className="p-4 hover:shadow-sm transition-shadow">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <span className="font-bold text-primary text-sm">{a.name?.charAt(0) || "A"}</span>
@@ -517,38 +536,31 @@ export default function Admin() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-foreground">{a.name || "未设置昵称"}</p>
-                          {a.role === "super_admin" && <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">总管</Badge>}
-                          {a.role === "admin" && <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">管理员</Badge>}
+                          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">管理员</Badge>
                         </div>
                         <p className="text-sm text-foreground/60">{a.email}</p>
+                        <p className="text-xs text-foreground/40">ID: {a.id}</p>
                       </div>
-                      {a.role === "admin" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-500 border-red-200 hover:bg-red-50"
-                          onClick={() => setRoleMutation.mutate({ userId: a.id, role: "user" })}
-                          disabled={setRoleMutation.isPending}
-                        >
-                          撤销权限
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-500 border-red-200 hover:bg-red-50 flex-shrink-0"
+                        onClick={() => setRoleMutation.mutate({ userId: a.id, role: "user" })}
+                        disabled={setRoleMutation.isPending}
+                      >
+                        撤销权限
+                      </Button>
                     </div>
                   </Card>
                 ))}
               </div>
             ) : (
-              <Card className="p-8 text-center mb-8">
+              <Card className="p-10 text-center">
+                <ShieldCheck className="w-10 h-10 text-foreground/20 mx-auto mb-3" />
                 <p className="text-foreground/60">暂无其他管理员</p>
+                <p className="text-sm text-foreground/40 mt-1">在上方输入用户 ID 来添加管理员</p>
               </Card>
             )}
-
-            {/* Promote user to admin */}
-            <h2 className="text-lg font-semibold text-foreground mb-3">添加管理员</h2>
-            <Card className="p-5">
-              <p className="text-sm text-foreground/60 mb-3">输入用户 ID 将其设为管理员（可在用户列表中查看用户 ID）</p>
-              <PromoteUserForm onPromote={(userId) => setRoleMutation.mutate({ userId, role: "admin" })} isPending={setRoleMutation.isPending} />
-            </Card>
           </div>
         )}
       </main>
