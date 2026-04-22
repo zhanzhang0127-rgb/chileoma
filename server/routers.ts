@@ -6,6 +6,8 @@ import { z } from "zod";
 import * as db from "./db";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
+import { ENV } from "./_core/env";
+import fetch from "node-fetch";
 
 // Admin-only procedure middleware
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -128,6 +130,71 @@ export const appRouter = router({
         offset: z.number().default(0),
       }))
       .query(({ input }) => db.getRestaurantsByDistrict(input.city, input.district, input.limit, input.offset)),
+
+    // 获取已发布餐厅列表（公开）
+    getPublished: publicProcedure
+      .input(z.object({
+        limit: z.number().default(20),
+        offset: z.number().default(0),
+      }))
+      .query(({ input }) => db.getPublishedRestaurants(input.limit, input.offset)),
+
+    // 逆地理编码：坐标 → 中文地址（后端代理，Key 不暴露给前端）
+    reverseGeocode: protectedProcedure
+      .input(z.object({
+        latitude: z.number(),
+        longitude: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const { latitude, longitude } = input;
+        const key = ENV.amapApiKey;
+        if (!key) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '地图服务未配置' });
+        const url = `https://restapi.amap.com/v3/geocode/regeo?key=${key}&location=${longitude},${latitude}&radius=100&extensions=base&batch=false`;
+        const res = await fetch(url);
+        const data = await res.json() as any;
+        if (data.status !== '1') throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '地址解析失败' });
+        const regeocode = data.regeocode;
+        return {
+          address: regeocode.formatted_address as string,
+          city: (regeocode.addressComponent?.city || regeocode.addressComponent?.province || '') as string,
+          district: (regeocode.addressComponent?.district || '') as string,
+        };
+      }),
+
+    // 用户提交餐厅（默认 pending 待审核）
+    submit: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1, '请输入餐厅名称'),
+        description: z.string().optional(),
+        cuisine: z.string().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        district: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+        phone: z.string().optional(),
+        image: z.string().optional(),
+        priceLevel: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        let imageUrl = input.image;
+        if (imageUrl && imageUrl.startsWith('data:')) {
+          const parts = imageUrl.split(',');
+          const base64Data = parts[1];
+          if (base64Data) {
+            const buffer = Buffer.from(base64Data, 'base64');
+            const fileKey = `restaurants/user-${ctx.user.id}-${Date.now()}.jpg`;
+            const { url } = await storagePut(fileKey, buffer, 'image/jpeg');
+            imageUrl = url;
+          }
+        }
+        return db.createRestaurantAdmin({
+          ...input,
+          image: imageUrl,
+          status: 'pending',
+          submittedBy: ctx.user.id,
+        });
+      }),
   }),
 
   // User Profile router

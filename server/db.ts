@@ -500,3 +500,13 @@ export async function getAllUsers(limit: number = 100, offset: number = 0) {
   if (!db) return [];
   return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt }).from(users).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
 }
+
+export async function getPublishedRestaurants(limit: number = 20, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(restaurants)
+    .where(eq(restaurants.status, 'published'))
+    .orderBy(desc(restaurants.createdAt))
+    .limit(limit)
+    .offset(offset);
+}

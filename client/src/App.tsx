@@ -14,6 +14,7 @@ import AiChat from "./pages/AiChat";
 import RestaurantDetail from "./pages/RestaurantDetail";
 import PostDetail from "./pages/PostDetail";
 import Admin from "./pages/Admin";
+import SubmitRestaurant from "./pages/SubmitRestaurant";
 import { ResponsiveNav } from "./components/ResponsiveNav";
 
 function Router() {
@@ -30,6 +31,7 @@ function Router() {
       <Route path={"/post/:id"} component={PostDetail} />
       <Route path={"/restaurant/:id"} component={RestaurantDetail} />
       <Route path={"/admin"} component={Admin} />
+      <Route path={"/submit-restaurant"} component={SubmitRestaurant} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

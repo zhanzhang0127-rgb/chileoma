@@ -96,3 +96,51 @@ describe("Admin Router - Permission Guard", () => {
     }
   });
 });
+
+describe("Restaurants Router - Submit & ReverseGeocode", () => {
+  it("should reject unauthenticated users from reverseGeocode", async () => {
+    const caller = appRouter.createCaller(createUnauthCtx());
+    await expect(
+      caller.restaurants.reverseGeocode({ latitude: 31.4798, longitude: 121.0956 })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("should reject unauthenticated users from submit", async () => {
+    const caller = appRouter.createCaller(createUnauthCtx());
+    await expect(
+      caller.restaurants.submit({ name: "Test Restaurant" })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("should reject submit with empty name", async () => {
+    const caller = appRouter.createCaller(createCtx("user"));
+    await expect(
+      caller.restaurants.submit({ name: "" })
+    ).rejects.toBeDefined();
+  });
+
+  it("authenticated user can call submit (DB may be unavailable in test, but not UNAUTHORIZED)", async () => {
+    const caller = appRouter.createCaller(createCtx("user"));
+    try {
+      const result = await caller.restaurants.submit({ name: "太仓小吃店" });
+      // If DB is available, should return an object with id
+      expect(result).toBeDefined();
+    } catch (e: any) {
+      // DB not available in test env is acceptable; UNAUTHORIZED is not
+      expect(e.code).not.toBe("UNAUTHORIZED");
+      expect(e.code).not.toBe("FORBIDDEN");
+    }
+  });
+
+  it("getPublished should be accessible without authentication", async () => {
+    const caller = appRouter.createCaller(createUnauthCtx());
+    try {
+      const result = await caller.restaurants.getPublished({ limit: 10, offset: 0 });
+      expect(Array.isArray(result)).toBe(true);
+    } catch (e: any) {
+      // DB not available is acceptable; auth errors are not
+      expect(e.code).not.toBe("UNAUTHORIZED");
+      expect(e.code).not.toBe("FORBIDDEN");
+    }
+  });
+});
