@@ -473,20 +473,47 @@ export const appRouter = router({
           role: z.enum(['user', 'assistant']),
           content: z.string(),
         })).default([]),
+        // 用户实时位置（可选）
+        userLocation: z.object({
+          latitude: z.number(),
+          longitude: z.number(),
+          address: z.string().optional(),
+        }).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
 
-        // 从数据库获取用户行为上下文
-        const [likedPosts, favRestaurants, recentPosts] = await Promise.all([
+        // 从数据库获取用户行为上下文 + 附近餐厅（如果有位置）
+        const [likedPosts, favRestaurants, recentPosts, nearbyRestaurants] = await Promise.all([
           db.getMyLikedPostsWithDetails(user.id, 5),
           db.getUserFavorites(user.id),
           db.getPostsForFeed(8, 0),
+          input.userLocation
+            ? db.getNearbyRestaurants(input.userLocation.latitude, input.userLocation.longitude, 5, 8)
+            : Promise.resolve([]),
         ]);
 
         const favNames = (favRestaurants as any[]).slice(0, 5).map((r: any) => r.name).join('、') || '暂无';
         const likedTitles = (likedPosts as any[]).slice(0, 5).map((p: any) => p.title).join('、') || '暂无';
         const hotPosts = (recentPosts as any[]).slice(0, 5).map((p: any) => `《${p.title}》(${p.rating}星)`).join('、') || '暂无';
+
+        // 构建附近餐厅信息
+        const nearbyInfo = (nearbyRestaurants as any[]).length > 0
+          ? (nearbyRestaurants as any[]).map((r: any) => {
+              const dist = typeof r.distance === 'number' ? r.distance.toFixed(1) : '?';
+              return `${r.name}（${dist}km，${r.cuisine || '综合'}，${r.priceLevel || '未知价位'}，评分${r.averageRating || '暂无'}）`;
+            }).join('；')
+          : null;
+
+        const locationLine = input.userLocation?.address
+          ? `- 当前位置：${input.userLocation.address}`
+          : input.userLocation
+          ? `- 当前位置：经纬度 (${input.userLocation.latitude.toFixed(4)}, ${input.userLocation.longitude.toFixed(4)})`
+          : '';
+
+        const nearbyLine = nearbyInfo
+          ? `- 附近5km内餐厅：${nearbyInfo}`
+          : '';
 
         const systemPrompt = `你是「吃了吗」美食社交平台的 AI 助手，专门帮助用户发现好餐厅、分享美食体验。
 
@@ -494,19 +521,21 @@ export const appRouter = router({
 - 用户名：${user.name || '匿名用户'}
 - 收藏的餐厅：${favNames}
 - 最近点赞的帖子：${likedTitles}
+${locationLine}
+${nearbyLine}
 
 平台近期热门内容：${hotPosts}
 
 你的职责：
 1. 根据用户口味偏好和收藏历史给出个性化餐厅推荐
-2. 回答关于美食、餐厅、菜系的问题
-3. 帮助用户分析饮食偏好
-4. 推荐平台上的热门内容
+2. 如果用户提供了位置，优先推荐附近餐厅列表中的餐厅
+3. 回答关于美食、餐厅、菜系的问题
+4. 帮助用户分析饮食偏好
 
 回复要求：
 - 用中文回复，语气友好自然
-- 推荐餐厅时说明推荐理由
-- 回复简洁，不超过300字
+- 推荐附近餐厅时说明距离和推荐理由
+- 回复简洁，不超过350字
 - 非美食相关问题礼貌引导回美食话题`;
 
         const messages: GLM4Message[] = [

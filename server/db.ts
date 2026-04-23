@@ -534,3 +534,46 @@ export async function setUserRole(userId: number, role: 'user' | 'admin' | 'supe
   const [updated] = await db.select().from(users).where(eq(users.id, userId));
   return updated;
 }
+
+/**
+ * 按经纬度查询附近已发布餐厅（Haversine 公式，单位：公里）
+ */
+export async function getNearbyRestaurants(lat: number, lng: number, radiusKm: number = 5, limit: number = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  // Haversine 公式（MySQL 内联计算距离）
+  const distanceExpr = sql<number>`
+    6371 * 2 * ASIN(SQRT(
+      POWER(SIN((RADIANS(CAST(${restaurants.latitude} AS DECIMAL(10,7))) - RADIANS(${lat})) / 2), 2) +
+      COS(RADIANS(${lat})) * COS(RADIANS(CAST(${restaurants.latitude} AS DECIMAL(10,7)))) *
+      POWER(SIN((RADIANS(CAST(${restaurants.longitude} AS DECIMAL(10,7))) - RADIANS(${lng})) / 2), 2)
+    ))
+  `;
+  const result = await db.select({
+    id: restaurants.id,
+    name: restaurants.name,
+    cuisine: restaurants.cuisine,
+    address: restaurants.address,
+    city: restaurants.city,
+    district: restaurants.district,
+    averageRating: restaurants.averageRating,
+    priceLevel: restaurants.priceLevel,
+    latitude: restaurants.latitude,
+    longitude: restaurants.longitude,
+    distance: distanceExpr,
+  })
+    .from(restaurants)
+    .where(
+      sql`${restaurants.status} = 'published'
+        AND ${restaurants.latitude} IS NOT NULL
+        AND ${restaurants.longitude} IS NOT NULL
+        AND (6371 * 2 * ASIN(SQRT(
+          POWER(SIN((RADIANS(CAST(${restaurants.latitude} AS DECIMAL(10,7))) - RADIANS(${lat})) / 2), 2) +
+          COS(RADIANS(${lat})) * COS(RADIANS(CAST(${restaurants.latitude} AS DECIMAL(10,7)))) *
+          POWER(SIN((RADIANS(CAST(${restaurants.longitude} AS DECIMAL(10,7))) - RADIANS(${lng})) / 2), 2)
+        ))) <= ${radiusKm}`
+    )
+    .orderBy(distanceExpr)
+    .limit(limit);
+  return result;
+}
