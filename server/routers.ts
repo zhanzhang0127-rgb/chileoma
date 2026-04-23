@@ -7,6 +7,7 @@ import * as db from "./db";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
 import { ENV } from "./_core/env";
+import { invokeGLM4, type GLM4Message } from "./_core/glm4";
 // Using native fetch (Node 18+)
 
 // Admin procedure: allows both admin and super_admin
@@ -464,21 +465,72 @@ export const appRouter = router({
   }),
 
   aiRecommendations: router({
-    create: protectedProcedure
+    // 真实 GLM-4 AI 对话接口
+    chat: protectedProcedure
       .input(z.object({
-        query: z.string(),
-        recommendations: z.string().optional(),
-        conversationHistory: z.string().optional(),
+        message: z.string().min(1).max(500),
+        conversationHistory: z.array(z.object({
+          role: z.enum(['user', 'assistant']),
+          content: z.string(),
+        })).default([]),
       }))
       .mutation(async ({ ctx, input }) => {
-        return db.createAiRecommendation({
-          userId: ctx.user.id,
-          query: input.query,
-          recommendations: input.recommendations,
-          conversationHistory: input.conversationHistory,
+        const user = ctx.user;
+
+        // 从数据库获取用户行为上下文
+        const [likedPosts, favRestaurants, recentPosts] = await Promise.all([
+          db.getMyLikedPostsWithDetails(user.id, 5),
+          db.getUserFavorites(user.id),
+          db.getPostsForFeed(8, 0),
+        ]);
+
+        const favNames = (favRestaurants as any[]).slice(0, 5).map((r: any) => r.name).join('、') || '暂无';
+        const likedTitles = (likedPosts as any[]).slice(0, 5).map((p: any) => p.title).join('、') || '暂无';
+        const hotPosts = (recentPosts as any[]).slice(0, 5).map((p: any) => `《${p.title}》(${p.rating}星)`).join('、') || '暂无';
+
+        const systemPrompt = `你是「吃了吗」美食社交平台的 AI 助手，专门帮助用户发现好餐厅、分享美食体验。
+
+当前用户信息：
+- 用户名：${user.name || '匿名用户'}
+- 收藏的餐厅：${favNames}
+- 最近点赞的帖子：${likedTitles}
+
+平台近期热门内容：${hotPosts}
+
+你的职责：
+1. 根据用户口味偏好和收藏历史给出个性化餐厅推荐
+2. 回答关于美食、餐厅、菜系的问题
+3. 帮助用户分析饮食偏好
+4. 推荐平台上的热门内容
+
+回复要求：
+- 用中文回复，语气友好自然
+- 推荐餐厅时说明推荐理由
+- 回复简洁，不超过300字
+- 非美食相关问题礼貌引导回美食话题`;
+
+        const messages: GLM4Message[] = [
+          { role: 'system', content: systemPrompt },
+          ...input.conversationHistory.slice(-6).map(m => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          })),
+          { role: 'user', content: input.message },
+        ];
+
+        const reply = await invokeGLM4(messages, { temperature: 0.8, maxTokens: 600 });
+
+        // 保存对话记录
+        await db.createAiRecommendation({
+          userId: user.id,
+          query: input.message,
+          recommendations: reply,
+          conversationHistory: JSON.stringify(input.conversationHistory),
         });
+
+        return { reply };
       }),
-    
+
     getMyRecommendations: protectedProcedure
       .input(z.object({
         limit: z.number().default(10),
