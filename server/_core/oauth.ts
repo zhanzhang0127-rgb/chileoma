@@ -28,14 +28,9 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      // Validate email domain - must be @student.xjtlu.edu.cn
-      // Exception: admin whitelist emails are always allowed
-      const ADMIN_EMAIL_WHITELIST = ["zhanzhang0127@gmail.com"];
-      const isWhitelisted = userInfo.email && ADMIN_EMAIL_WHITELIST.includes(userInfo.email);
-      if (userInfo.email && !isWhitelisted && !userInfo.email.endsWith("@student.xjtlu.edu.cn")) {
-        res.redirect(302, "/?error=invalid_email_domain");
-        return;
-      }
+      // Note: Email domain restriction removed.
+      // All login methods (Google, Microsoft, Facebook, Apple, email) are now allowed.
+      // Previously restricted to @student.xjtlu.edu.cn only.
 
       await db.upsertUser({
         openId: userInfo.openId,
